@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: node-app
-        image: yolomurphy/my-app:1d9c0841895fe42a42baf555bdd8ecccb87b90ed
+        image: yolomurphy/my-app:4b98c34a1fbbfe647f678fa006d46e16004da1d3
         ports:
         - containerPort: 3000
