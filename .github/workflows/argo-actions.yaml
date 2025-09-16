@@ -23,6 +23,10 @@ jobs:
               with:
                token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
                fetch-depth: 0
+
+            - name: Set SHORT_SHA
+              run: echo "SHORT_SHA=$(echo ${{ env.SHORT_SHA }} | cut -c1-5)" >> $GITHUB_ENV
+
                
             - name: Set up Node.js
               uses: actions/setup-node@v3
@@ -33,16 +37,16 @@ jobs:
               run: npm install
               
             - name: Build Docker image
-              run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha}} .
+              run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ env.SHORT_SHA }} .
 
             - name: Scan Docker Image with Trivy
-              run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image ${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}
+              run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image ${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ env.SHORT_SHA }}
 
             - name: Log in to DockerHub
               run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
               
             - name: Push Docker image to DockerHub
-              run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}
+              run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ env.SHORT_SHA }}
 
     deploy:
         needs: build
@@ -82,7 +86,7 @@ jobs:
                 pwd
                 cat manifest/deployment.yaml
                 pwd
-                sed -i "s+${{ secrets.DOCKERHUB_USERNAME }}/my-app.*+${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}+g" manifest/deployment.yaml
+                sed -i "s+${{ secrets.DOCKERHUB_USERNAME }}/my-app.*+${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ env.SHORT_SHA }}+g" manifest/deployment.yaml
                 cat manifest/deployment.yaml
 
             - name: Commit and Push Updated deployment.yaml
@@ -94,7 +98,7 @@ jobs:
                 git checkout main
                 git pull origin main
                 git add .
-                git commit -m "Update image to my-app:${{ github.sha }} [skip ci]"
+                git commit -m "Update image to my-app:${{ env.SHORT_SHA }} [skip ci]"
                 git push origin main
 
             - name: Refresh ArgoCD App and Sync
